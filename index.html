@@ -95,9 +95,9 @@
   <script>
     async function fetchLeaderboard() {
       const [positionsRes, driversRes, teamsRes] = await Promise.all([
-        fetch('https://api.openf1.org/v1/position?meeting_key=1217'),
-        fetch('https://api.openf1.org/v1/drivers?meeting_key=1217'),
-        fetch('https://api.openf1.org/v1/teams?meeting_key=1217')
+        fetch('https://api.openf1.org/v1/position?meeting_key=latest'),
+        fetch('https://api.openf1.org/v1/drivers?meeting_key=latest'),
+        fetch('https://api.openf1.org/v1/teams?meeting_key=latest')
       ]);
 
       const [positions, drivers, teams] = await Promise.all([
