@@ -94,29 +94,23 @@
 
   <script>
     async function fetchLeaderboard() {
-      const [positionsRes, driversRes, teamsRes] = await Promise.all([
+      const [positionsRes, driversRes] = await Promise.all([
         fetch('https://api.openf1.org/v1/position?meeting_key=latest'),
-        fetch('https://api.openf1.org/v1/drivers?meeting_key=latest'),
-        fetch('https://api.openf1.org/v1/teams?meeting_key=latest')
+        fetch('https://api.openf1.org/v1/drivers?meeting_key=latest')
       ]);
 
-      const [positions, drivers, teams] = await Promise.all([
+      const [positions, drivers] = await Promise.all([
         positionsRes.json(),
-        driversRes.json(),
-        teamsRes.json()
+        driversRes.json()
       ]);
 
-      // Map drivers and teams for easy lookup
+      // Map drivers for easy lookup (including team info)
       const driverMap = {};
       drivers.forEach(d => {
-        driverMap[d.driver_number] = `${d.first_name} ${d.last_name}`;
-      });
-
-      const teamMap = {};
-      teams.forEach(t => {
-        teamMap[t.driver_number] = {
-          name: t.team_name,
-          color: t.team_colour || "#ccc"
+        driverMap[d.driver_number] = {
+          name: `${d.first_name} ${d.last_name}`,
+          team: d.team_name || "N/A",
+          color: d.team_colour || "#ccc"
         };
       });
 
@@ -137,15 +131,18 @@
 
       sorted.forEach(item => {
         const driverNum = item.driver_number;
-        const name = driverMap[driverNum] || "Unknown";
-        const team = teamMap[driverNum] || { name: "N/A", color: "#ccc" };
+        const info = driverMap[driverNum] || {
+          name: "Unknown",
+          team: "N/A",
+          color: "#ccc"
+        };
 
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>P${item.position}</td>
           <td>${driverNum}</td>
-          <td class="driver-name">${name}</td>
-          <td><span class="team-color" style="background:${team.color}"></span><span class="team-name">${team.name}</span></td>
+          <td class="driver-name">${info.name}</td>
+          <td><span class="team-color" style="background:${info.color}"></span><span class="team-name">${info.team}</span></td>
         `;
         container.appendChild(row);
       });
