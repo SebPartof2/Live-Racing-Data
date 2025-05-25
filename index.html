@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>F1 Live Leaderboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #leaderboard {
+      margin-top: 20px;
+    }
+    .driver {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>F1 Live Leaderboard</h1>
+  <div id="leaderboard">Loading...</div>
+
+  <script>
+    async function fetchLeaderboard() {
+      const url = 'https://api.openf1.org/v1/position?meeting_key=1217';
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // Keep latest position per driver
+      const latestPositions = {};
+      data.forEach(item => {
+        const key = item.driver_number;
+        if (!latestPositions[key] || new Date(item.date) > new Date(latestPositions[key].date)) {
+          latestPositions[key] = item;
+        }
+      });
+
+      // Convert to array and sort by position
+      const sortedDrivers = Object.values(latestPositions).sort((a, b) => a.position - b.position);
+
+      // Display leaderboard
+      const container = document.getElementById('leaderboard');
+      container.innerHTML = '';
+
+      sortedDrivers.forEach(item => {
+        const entry = document.createElement('div');
+        entry.className = 'driver';
+        entry.textContent = `P${item.position}: Driver #${item.driver_number}`;
+        container.appendChild(entry);
+      });
+    }
+
+    fetchLeaderboard();
+    setInterval(fetchLeaderboard, 10000); // Update every 10 seconds
+  </script>
+</body>
+</html>
