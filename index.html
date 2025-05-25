@@ -22,7 +22,7 @@
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       width: 90%;
-      max-width: 600px;
+      max-width: 900px;
     }
 
     h1 {
@@ -56,9 +56,21 @@
       background-color: #e0f7fa;
     }
 
-    .driver-number {
+    .team-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .driver-name {
       font-weight: bold;
-      color: #333;
+    }
+
+    .team-name {
+      font-style: italic;
+      color: #555;
     }
   </style>
 </head>
@@ -70,48 +82,77 @@
         <tr>
           <th>Position</th>
           <th>Driver #</th>
+          <th>Driver Name</th>
+          <th>Team</th>
         </tr>
       </thead>
       <tbody id="leaderboard">
-        <tr><td colspan="2">Loading...</td></tr>
+        <tr><td colspan="4">Loading...</td></tr>
       </tbody>
     </table>
   </div>
 
   <script>
     async function fetchLeaderboard() {
-      const url = 'https://api.openf1.org/v1/position?meeting_key=1217';
-      const response = await fetch(url);
-      const data = await response.json();
+      const [positionsRes, driversRes, teamsRes] = await Promise.all([
+        fetch('https://api.openf1.org/v1/position?meeting_key=1217'),
+        fetch('https://api.openf1.org/v1/drivers?meeting_key=1217'),
+        fetch('https://api.openf1.org/v1/teams?meeting_key=1217')
+      ]);
 
-      // Keep the latest position per driver
-      const latestPositions = {};
-      data.forEach(item => {
-        const key = item.driver_number;
-        if (!latestPositions[key] || new Date(item.date) > new Date(latestPositions[key].date)) {
-          latestPositions[key] = item;
+      const [positions, drivers, teams] = await Promise.all([
+        positionsRes.json(),
+        driversRes.json(),
+        teamsRes.json()
+      ]);
+
+      // Map drivers and teams for easy lookup
+      const driverMap = {};
+      drivers.forEach(d => {
+        driverMap[d.driver_number] = `${d.first_name} ${d.last_name}`;
+      });
+
+      const teamMap = {};
+      teams.forEach(t => {
+        teamMap[t.driver_number] = {
+          name: t.team_name,
+          color: t.team_colour || "#ccc"
+        };
+      });
+
+      // Get the latest position for each driver
+      const latest = {};
+      positions.forEach(p => {
+        const key = p.driver_number;
+        if (!latest[key] || new Date(p.date) > new Date(latest[key].date)) {
+          latest[key] = p;
         }
       });
 
-      // Sort by position
-      const sortedDrivers = Object.values(latestPositions).sort((a, b) => a.position - b.position);
+      const sorted = Object.values(latest).sort((a, b) => a.position - b.position);
 
-      // Build the table rows
-      const container = document.getElementById('leaderboard');
-      container.innerHTML = '';
+      // Build the table
+      const container = document.getElementById("leaderboard");
+      container.innerHTML = "";
 
-      sortedDrivers.forEach(item => {
-        const row = document.createElement('tr');
+      sorted.forEach(item => {
+        const driverNum = item.driver_number;
+        const name = driverMap[driverNum] || "Unknown";
+        const team = teamMap[driverNum] || { name: "N/A", color: "#ccc" };
+
+        const row = document.createElement("tr");
         row.innerHTML = `
           <td>P${item.position}</td>
-          <td class="driver-number">${item.driver_number}</td>
+          <td>${driverNum}</td>
+          <td class="driver-name">${name}</td>
+          <td><span class="team-color" style="background:${team.color}"></span><span class="team-name">${team.name}</span></td>
         `;
         container.appendChild(row);
       });
     }
 
     fetchLeaderboard();
-    setInterval(fetchLeaderboard, 10000); // Update every 10 seconds
+    setInterval(fetchLeaderboard, 10000); // refresh every 10s
   </script>
 </body>
 </html>
